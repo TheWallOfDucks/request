@@ -1,7 +1,7 @@
 {
-  "name": "@apiture/request",
+  "name": "request",
   "version": "0.0.2",
-  "description": "Request module for Apiture",
+  "description": "Request module",
   "main": "request.js",
   "scripts": {
     "test": "jasmine tests/*.spec.js"
@@ -13,7 +13,7 @@
   },
   "repository" : {
     "type" : "git",
-    "url": "https://bitbucket.org/liveoakbank/request"
+    "url": "https://github.com/TheWallOfDucks/request"
   },
   "dependencies": {
     "xml2js": "^0.4.19"

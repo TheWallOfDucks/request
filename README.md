@@ -2,9 +2,6 @@
 
 This module is used for making API requests. Uses [Node.js HTTPS](https://nodejs.org/api/https.html) under the hood.
 
-## Installation
-```npm install @apiture/request --save-dev```
-
 ## Features
 
 * Supports promises or callbacks
