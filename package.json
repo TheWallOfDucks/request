@@ -1,6 +1,6 @@
 {
   "name": "@apiture/request",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Request module for Apiture",
   "main": "request.js",
   "scripts": {
@@ -10,6 +10,10 @@
   "license": "ISC",
   "devDependencies": {
     "jasmine": "^2.8.0"
+  },
+  "repository" : {
+    "type" : "git",
+    "url": "https://bitbucket.org/liveoakbank/request"
   },
   "dependencies": {
     "xml2js": "^0.4.19"
