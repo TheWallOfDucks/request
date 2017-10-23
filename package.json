@@ -1,6 +1,6 @@
 {
   "name": "request",
-  "version": "0.0.2",
+  "version": "0.0.1",
   "description": "Request module",
   "main": "request.js",
   "scripts": {
@@ -11,8 +11,8 @@
   "devDependencies": {
     "jasmine": "^2.8.0"
   },
-  "repository" : {
-    "type" : "git",
+  "repository": {
+    "type": "git",
     "url": "https://github.com/TheWallOfDucks/request"
   },
   "dependencies": {
