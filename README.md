@@ -30,11 +30,13 @@ This module is used for making API requests. Uses [Node.js HTTPS](https://nodejs
 
 ```options.contentType``` - Content type of the request body (default: ```application/json```)
 
-```options.resolveWithBodyOnly``` - If true only the response body will be returned (default: ```false```)
+```options.resolveWithBodyOnly``` - If true only the response body will be returned (default: ```true```)
 
 ```options.rejectNon2xx``` - If true it will reject non 2xx status codes (default: ```true```)
 
 ```options.debug``` - If true it will log information about the request/response (default: ```false```)
+
+```options.timeout``` - MS to wait for a response (default: ```10000```)
 
 Making an API call that returns a promise
 
@@ -136,22 +138,18 @@ let postBody = {
 };
 
 let createPet = new https.request({ method: 'POST', url: 'http://petstore.swagger.io/v2/pet', body: postBody });
-let petId;
 
 createPet.promise()
     .then(response => {
-        petId = response.body.id;
-        expect(petId).toBeDefined();
-
+        let petId = response.id;
         let findPet = new https.request({ url: `http://petstore.swagger.io/v2/pet/${petId}` });
 
         return findPet.promise();
     })
     .then(response => {
-        expect(response.body.id).toEqual(petId);
-        done();
+        //do stuff
     })
     .catch(err => {
-        done.fail(err);
+        //handle errors
     });
 ```
