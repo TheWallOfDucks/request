@@ -4,7 +4,7 @@ describe('request.js', () => {
 
     it('should support promises', (done) => {
 
-        let Request = new https.request({ url: 'https://jsonplaceholder.typicode.com/comments' });
+        let Request = new https.request({ url: 'https://jsonplaceholder.typicode.com/comments', resolveWithBodyOnly: false });
 
         Request.promise()
             .then(response => {
@@ -19,7 +19,7 @@ describe('request.js', () => {
 
     it('should support callbacks', (done) => {
 
-        let Request = new https.request({ url: 'https://jsonplaceholder.typicode.com/comments' });
+        let Request = new https.request({ url: 'https://jsonplaceholder.typicode.com/comments', resolveWithBodyOnly: false });
 
         Request.callback((err, response) => {
             if (err) { done.fail(err) };
@@ -30,9 +30,9 @@ describe('request.js', () => {
 
     });
 
-    it('should return an object with a response body, status code, and duration', (done) => {
+    it('should return an object with a response body, status code, and duration when resolveWithBodyOnly: false', (done) => {
 
-        let Request = new https.request({ url: 'https://jsonplaceholder.typicode.com/comments' });
+        let Request = new https.request({ url: 'https://jsonplaceholder.typicode.com/comments', resolveWithBodyOnly: false });
 
         Request.promise()
             .then(response => {
@@ -45,13 +45,13 @@ describe('request.js', () => {
 
     });
 
-    it('should use query parameters', (done) => {
+    it('should support query parameters', (done) => {
 
         let Request = new https.request({ url: 'https://jsonplaceholder.typicode.com/comments', parameters: { postId: 1 } });
 
         Request.promise()
             .then(response => {
-                response.body.forEach((object) => {
+                response.forEach((object) => {
                     expect(object.postId).toEqual(Request.parameters.postId);
                 });
                 done();
@@ -84,7 +84,7 @@ describe('request.js', () => {
                             <status>available</status>
                         </Pet>`
 
-        let Request = new https.request({ method: 'POST', url: 'http://petstore.swagger.io/v2/pet', body: postBody, headers: { Accept: 'application/xml' }, contentType: 'application/xml' })
+        let Request = new https.request({ method: 'POST', url: 'http://petstore.swagger.io/v2/pet', body: postBody, headers: { Accept: 'application/xml' }, contentType: 'application/xml', resolveWithBodyOnly: false })
 
         Request.promise()
             .then(response => {
@@ -124,7 +124,7 @@ describe('request.js', () => {
 
         createPet.promise()
             .then(response => {
-                petId = response.body.id;
+                petId = response.id;
                 expect(petId).toBeDefined();
 
                 let findPet = new https.request({ url: `http://petstore.swagger.io/v2/pet/${petId}` });
@@ -132,7 +132,7 @@ describe('request.js', () => {
                 return findPet.promise();
             })
             .then(response => {
-                expect(response.body.id).toEqual(petId);
+                expect(response.id).toEqual(petId);
                 done();
             })
             .catch(err => {
@@ -186,7 +186,7 @@ describe('request.js', () => {
             .catch(err => {
                 expect(err).toContain('Invalid status code');
 
-                let Request = new https.request({ url: 'http://petstore.swagger.io/v2/pet/garbageId', rejectNon2xx: false });
+                let Request = new https.request({ url: 'http://petstore.swagger.io/v2/pet/garbageId', rejectNon2xx: false, resolveWithBodyOnly: false });
                 return Request.promise()
             })
             .then(response => {
@@ -195,5 +195,56 @@ describe('request.js', () => {
             });
 
     });
+
+    it('should allow for debugging', (done) => {
+
+        let postBody = {
+            "id": 0,
+            "category": {
+                "id": 0,
+                "name": "string"
+            },
+            "name": "Dog",
+            "photoUrls": [
+                "string"
+            ],
+            "tags": [
+                {
+                    "id": 0,
+                    "name": "string"
+                }
+            ],
+            "status": "available"
+        };
+
+        let Request = new https.request({ method: 'POST', url: 'http://petstore.swagger.io/v2/pet', body: postBody, debug: true });
+        console.log = jasmine.createSpy("debug");
+
+        Request.promise()
+            .then(response => {
+                expect(console.log).toHaveBeenCalledWith(Request.debugInfo);
+                done();
+            })
+            .catch(err => {
+                done.fail(err);
+            });
+
+    });
+
+    xit('should support timeouts', (done) => {
+
+        let timeout = 2;
+        let Request = new https.request({ url: 'http://slowwly.robertomurray.co.uk/delay/7000/url/http://google.co.uk', timeout: timeout, resolveWithBodyOnly: false });
+
+        Request.promise()
+            .then(response => {
+                done.fail('Was expecting a timeout');
+            })
+            .catch(err => {
+                expect(err.message).toEqual(`Timed out waiting for response after ${timeout / 1000} seconds`);
+                done();
+            });
+
+    }).pend(`This doesn't work yet :(`);
 
 });
