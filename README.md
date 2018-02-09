@@ -2,74 +2,60 @@
 
 This module is used for making API requests. Uses [Node.js HTTPS](https://nodejs.org/api/https.html) under the hood.
 
-## Features
+## Installation
+* Not published (yet)
 
-* Supports promises or callbacks
+## Features
 * Supports HTTPS and HTTP
 * Supports JSON/XML requests. By default XML requests will convert response and return JSON object
 
-## Coming soon
+### #Options
 
-* Logging to a database near you
+```method``` - Supports standard HTTP verbs (default: ```GET```)
 
-## Methods
+```url``` - Full URL to send request to. Will support HTTP and HTTPS requests
 
-### #constructor (options)
+```body``` - Request body to send
 
-```options.method``` - Supports standard HTTP verbs (default: ```GET```)
+```parameters``` - Query parameters to include in request
 
-```options.url``` - Full URL to send request to. Will support HTTP and HTTPS requests
+```headers``` - Headers to include in request
 
-```options.body``` - Request body to send
+```auth``` - Authorization required to send request
 
-```options.parameters``` - Query parameters to include in request
+```key``` - Key required for request
 
-```options.headers``` - Headers to include in request
+```cert``` - Certificate required for request
 
-```options.auth``` - Authorization required to send request
+```passphrase``` - Passphrase for certificate
 
-```options.contentType``` - Content type of the request body (default: ```application/json```)
+```contentType``` - Content type of the request body (default: ```application/json```)
 
-```options.resolveWithBodyOnly``` - If true only the response body will be returned (default: ```true```)
+```resolveWithBodyOnly``` - If true only the response body will be returned (default: ```false```)
 
-```options.rejectNon2xx``` - If true it will reject non 2xx status codes (default: ```true```)
+```rejectNon2xx``` - If true it will reject non 2xx status codes (default: ```true```)
 
-```options.debug``` - If true it will log information about the request/response (default: ```false```)
+```debug``` - If true it will log information about the request/response (default: ```false```)
 
-```options.timeout``` - MS to wait for a response (default: ```10000```)
+```timeout``` - MS to wait for a response (default: ```10000```)
 
-Making an API call that returns a promise
-
-```js
-let Request = new https.request({ url: 'https://jsonplaceholder.typicode.com/comments' });
-
-Request.promise()
-    .then(response => {
-        //do stuff
-    })
-    .catch(err => {
-        //handle errors
-    });
-```
-
-Making an API call that returns a callback
+Making an API call
 
 ```js
-let Request = new https.request({ url: 'https://jsonplaceholder.typicode.com/comments' });
+const url: string = 'https://jsonplaceholder.typicode.com/comments';
 
-Request.callback((err, response) => {
-    if (err) { 
-        //handle error
-    }
-
-    //do stuff
-});
+try {
+    const request = new promise({ url });
+    const response = await request.execute();
+} catch (error) {
+    //handle errors
+}
 ```
 
 Making an API call using XML
 
 ```js
-let postBody = `<?xml version="1.0" encoding="UTF-8"?>
+const body: string = `<?xml version="1.0" encoding="UTF-8"?>
                 <Pet>
                     <id>0</id>
                     <Category>
@@ -87,69 +73,29 @@ let postBody = `<?xml version="1.0" encoding="UTF-8"?>
                         </Tag>
                     </tag>
                     <status>available</status>
-                </Pet>`
+                </Pet>`;
+const url: string = 'http://petstore.swagger.io/v2/pet';
+const headers: object = { Accept: 'application/xml' };
+const contentType: string = 'application/xml';
 
-let Request = new https.request({ method: 'POST', url: 'http://petstore.swagger.io/v2/pet', body: postBody, headers: { Accept: 'application/xml' }, contentType: 'application/xml' })
-
-Request.promise()
-    .then(response => {
-        //do stuff
-    })
-    .catch(err => {
-        //handle errors
-    });
+try {
+    const request = new promise({ method: 'POST', url, body, headers, contentType });
+    const response = await request.execute();
+} catch (error) {
+    //handle errors
+}
 ```
 
 Making an API call using query parameters
 
 ```js
-let Request = new https.request({ url: 'https://jsonplaceholder.typicode.com/comments', parameters: { postId: 1 } });
+const url: string = 'https://jsonplaceholder.typicode.com/comments';
+const parameters: object = { postId: 1 };
 
-Request.promise()
-    .then(response => {
-        //do stuff
-    })
-    .catch(err => {
-        //handle errors
-    });
-
-```
-
-Chaining multiple API calls together using promises
-
-```js
-let postBody = {
-    "id": 0,
-    "category": {
-        "id": 0,
-        "name": "string"
-    },
-    "name": "Dog",
-    "photoUrls": [
-        "string"
-    ],
-    "tags": [
-        {
-            "id": 0,
-            "name": "string"
-        }
-    ],
-    "status": "available"
-};
-
-let createPet = new https.request({ method: 'POST', url: 'http://petstore.swagger.io/v2/pet', body: postBody });
-
-createPet.promise()
-    .then(response => {
-        let petId = response.id;
-        let findPet = new https.request({ url: `http://petstore.swagger.io/v2/pet/${petId}` });
-
-        return findPet.promise();
-    })
-    .then(response => {
-        //do stuff
-    })
-    .catch(err => {
-        //handle errors
-    });
+try {
+    const request = new promise({ url, parameters });
+    const response = await request.execute();
+} catch (error) {
+    //handle errors
+}
 ```

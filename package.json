@@ -1,21 +1,27 @@
 {
   "name": "request",
   "version": "0.0.1",
-  "description": "Request module",
-  "main": "request.js",
+  "description": "HTTP Request module",
+  "main": "src/core/classes/request.ts",
   "scripts": {
-    "test": "jasmine tests/*.spec.js"
+    "clean": "rm -Rf ./build",
+    "test": "npm run clean && tsc ; jasmine build/tests/*.spec.js"
   },
   "author": "Caleb Duckwall",
   "license": "ISC",
+  "dependencies": {
+    "@types/node": "^9.4.0",
+    "xml2js": "^0.4.19"
+  },
   "devDependencies": {
-    "jasmine": "^2.8.0"
+    "typescript": "^2.7.1",
+    "tslint": "^5.9.1",
+    "tslint-config-airbnb": "^5.5.0",
+    "jasmine": "^2.8.0",
+    "@types/jasmine": "^2.8.6"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/TheWallOfDucks/request"
-  },
-  "dependencies": {
-    "xml2js": "^0.4.19"
   }
 }
