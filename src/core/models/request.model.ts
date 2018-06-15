@@ -1,53 +1,109 @@
 /**
- * Request parameters that are used to build HttpOptions
+ * @description Request parameters that are used to build HttpOptions
  */
 export interface RequestOptions {
-    /** HTTP verb. Defaults to get */
-    method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS',
-    /** URL to send request to */
-    url: string,
-    /** Request body */
-    body?: any,
-    /** Query parameters */
-    parameters?: any,
-    /** Request headers */
-    headers?: any,
-    /** Basic authorization to include with request */
-    auth?: { username: string, password: string },
-    /** Key required for request */
-    key?: string,
-    /** Certificate required for request */
-    cert?: string,
-    /** Passphrase for certificate */
-    passphrase?: string,
-    /** Content-Type to send with request */
-    contentType?: string,
-    /** If true it will only return the response body. Defaults to false */
-    resolveWithBodyOnly?: boolean,
-    /** If true it will reject any request that returns a non-2xx status code. Defaults to true */
-    rejectNon2xx?: boolean,
-    /** If true detailed request/response information will be logged to console. Defaults to false */
-    debug?: boolean,
-    /** MS to wait for a response to be returned from server. Defaults to 10000 */
-    timeout?: number
+    /**
+     * @description HTTP verb
+     * @default GET
+     */
+    method?: Method;
+
+    /**
+     * @description URL to send request to
+     */
+    url?: string;
+
+    /**
+     * @description Request body
+     */
+    body?: any;
+
+    /**
+     * @description Form Data
+     */
+    formData?: FormData;
+
+    /**
+     * @description Query parameters
+     */
+    parameters?: object | null;
+
+    /**
+     * @description Escape query parameters
+     */
+    escapeParameters?: boolean;
+
+    /**
+     * @description Request headers
+     */
+    headers?: any;
+
+    /**
+     * @description Basic authorization to include with request
+     */
+    auth?: Auth;
+
+    /**
+     * @description Certificate information required for request
+     */
+    clientCert?: ClientCert;
+
+    /**
+     * @deprecated
+     * @description Content-Type to send with request
+     */
+    contentType?: string;
+
+    /**
+     * @description If true it will only return the response body
+     * @default false
+     */
+    resolveWithBodyOnly?: boolean;
+
+    /**
+     * @description If true it will reject any request that returns a non-2xx status code
+     * @default true
+     */
+    rejectNon2xx?: boolean;
+
+    /**
+     * @description Information needed to retry request
+     */
+    retryLogic?: RetryLogic[];
+
+    /**
+     * @description If true detailed request/response information will be logged to console
+     * @default false
+     */
+    debug?: boolean;
+
+    /**
+     * @description MS to wait for a response to be returned from server
+     * @default 10000
+     */
+    timeout?: number;
 }
 
 /**
- * These options are derived from RequestOptions
+ * @description These options are derived from RequestOptions
  */
 export interface HttpOptions {
-    hostname: string,
-    port: number,
-    path: string,
-    headers: object,
-    auth?: any,
-    method: string,
-    key?: any,
-    cert?: any,
-    passphrase?: string,
-    body?: any
+    hostname: string;
+    port: string;
+    path: string;
+    headers: any;
+    auth?: any;
+    method: string;
+    key?: any;
+    cert?: any;
+    passphrase?: string;
+    body?: any;
+    duration?: number;
 }
 
+/**
+ * @description Supported HTTP methods
+ */
 export enum Method {
     GET = 'GET',
     POST = 'POST',
@@ -56,4 +112,29 @@ export enum Method {
     DELETE = 'DELETE',
     HEAD = 'HEAD',
     OPTIONS = 'OPTIONS',
+}
+
+/**
+ * @description Basic authentication
+ */
+export interface Auth {
+    username: string;
+    password: string;
+}
+
+/**
+ * @description SSL cert information
+ */
+export interface ClientCert {
+    certificate: Buffer;
+    key: Buffer;
+    passphrase: string;
+}
+
+/**
+ * @description Logic for when a request should be retried
+ */
+export interface RetryLogic {
+    retryLimit: number;
+    retryCondition: string;
 }

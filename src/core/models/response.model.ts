@@ -1,8 +1,23 @@
+/**
+ * @description Response structure
+ */
 export interface Response {
-    /** Status code returned by server */
-    statusCode: number,
-    /** Response body */
-    body: any,
-    /** Request duration */
-    duration: number
+    /**
+     * @description Status code returned by server
+     */
+    statusCode?: number;
+
+    /**
+     * @description Response body
+     */
+    body: any;
+
+    /**
+     * @description Response headers
+     */
+    headers?: any;
+}
+
+export interface ErrorResponse extends Response {
+    message: string;
 }
