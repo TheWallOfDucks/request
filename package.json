@@ -1,27 +1,38 @@
 {
-  "name": "request",
-  "version": "0.0.1",
-  "description": "HTTP Request module",
-  "main": "src/core/classes/request.ts",
-  "scripts": {
-    "clean": "rm -Rf ./build",
-    "test": "npm run clean && tsc ; jasmine build/tests/*.spec.js"
-  },
-  "author": "Caleb Duckwall",
-  "license": "ISC",
-  "dependencies": {
-    "@types/node": "^9.4.0",
-    "xml2js": "^0.4.19"
-  },
-  "devDependencies": {
-    "typescript": "^2.7.1",
-    "tslint": "^5.9.1",
-    "tslint-config-airbnb": "^5.5.0",
-    "jasmine": "^2.8.0",
-    "@types/jasmine": "^2.8.6"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/TheWallOfDucks/request"
-  }
+    "name": "request",
+    "version": "1.0.0",
+    "description": "HTTP Request module for testing APIs",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "clean": "rm -Rf ./dist",
+        "create_dist": "npm run clean && tsc && npm version patch ; cpx 'package.json' dist && cpx 'README.md' dist",
+        "create_dist_local": "npm run clean && tsc; cpx 'package.json' dist && cpx 'README.md' dist",
+        "test": "npm run clean && tsc ; jasmine dist/src/tests/*.spec.js --config=./jasmine.json"
+    },
+    "author": "Caleb Duckwall",
+    "license": "ISC",
+    "dependencies": {
+        "@types/node": "^9.6.9",
+        "express": "^4.16.2",
+        "moment": "^2.22.1",
+        "mysql": "^2.15.0",
+        "xml2js": "^0.4.19"
+    },
+    "devDependencies": {
+        "@types/jasmine": "^2.8.6",
+        "cpx": "^1.5.0",
+        "dotenv": "^5.0.0",
+        "form-data": "^2.3.2",
+        "jasmine": "^3.1.0",
+        "jasmine-reporters": "^2.3.1",
+        "jasmine-spec-reporter": "^4.2.1",
+        "tslint": "^5.9.1",
+        "tslint-config-airbnb": "^5.8.0",
+        "typescript": "^2.8.3"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/TheWallOfDucks/jasmine-test-runner"
+    }
 }

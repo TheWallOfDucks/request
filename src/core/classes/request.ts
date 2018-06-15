@@ -1,114 +1,269 @@
-import { HttpOptions, Method, RequestOptions } from '../models/request.model';
-import { Response } from '../models/response.model';
+import { RequestOptions, HttpOptions } from '../models/request.model';
+import { Response, ErrorResponse } from '../models/response.model';
+import { BaseRequest } from './base_request';
+import { Utility } from './utility';
 
-export class Request {
+let https: any;
+const { URL } = require('url');
+let promiseReject;
+let promiseResolve;
+let timeout: NodeJS.Timer;
 
-    url: string;
-    port: number;
-    hostname: string;
-    path: string;
-    method: string;
-    body: any;
-    contentType: string;
-    headers: any;
-    parameters: any;
-    qs: string;
-    key: string;
-    cert: string;
-    passphrase: string;
-    rejectNon2xx: boolean;
-    debug: boolean;
-    timeout: number;
-    resolveWithBodyOnly: boolean;
-    auth: { username: string, password: string };
-    debugInfo: any;
-    protocol: string;
-
+export class Request extends BaseRequest {
     /**
-     * @description Builds out HttpOptions based on RequestOptions provided
-     * @param  {RequestOptions} options
+     * @description Calls Request constructor and determines which HTTP module to use based on the protocol
+     * @param {RequestOptions} options
      */
     constructor(options: RequestOptions) {
+        super(options);
+        this.protocol === 'http:' ? (https = require('http')) : (https = require('https'));
+    }
 
-        const { URL } = require('url');
-        const querystring = require('querystring');
-        const err = '';
+    /**
+     * @description Builds out HttpOptions
+     * @returns {HttpOptions}
+     */
+    private buildOptions(): HttpOptions {
+        const options: HttpOptions = {
+            hostname: this.hostname,
+            port: this.port,
+            path: this.path + this.qs,
+            headers: this.headers,
+            auth: this.auth,
+            method: this.method,
+            key: this.key,
+            cert: this.cert,
+            passphrase: this.passphrase,
+        };
 
-        let url;
+        return options;
+    }
 
-        // Build a new URL and store hostname/path
-        !options.url ? console.error('No URL provided') : (url = new URL(options.url), this.hostname = url.hostname, this.path = url.pathname);
-
-        // If protocol is HTTP, use HTTP module instead of HTTPS
-        this.protocol = url.protocol;
-
-        /**
-         *  If there is a port, use it
-         *  If there is no port, and protocol is HTTP, default to port 80
-         *  Otherwise default to port 443
-         */
-        url.port ? this.port = url.port : url.protocol === 'http:' ? this.port = 80 : this.port = 443;
-
-        !options.method ? this.method = Method.GET : this.method = options.method;
-
-        /**
-         *  If there is no request body use querystring to stringify it
-         *  If the request body is an object use JSON.stringify
-         */
-        !options.body ? this.body = querystring.stringify(options.body)
-            : (typeof options.body === 'object') ? this.body = JSON.stringify(options.body)
-                : this.body = options.body;
-
-        /**
-         * If there is contentType specified in the options, use it
-         * If there is no contentType, but there is a content-type header, use it
-         * If there is nothing, default it to JSON
-         */
-        options.contentType ? this.contentType = options.contentType
-            : options.headers && 'Content-Type' in options.headers ? this.contentType = options.headers['Content-Type']
-                // : this.contentType = 'application/hal+json';
-                : this.contentType = 'application/json';
-
-        // Build the headers based on the contentType and request body if there is one
-        options.headers ? (this.headers = options.headers, this.headers['Content-Type'] = this.contentType, this.headers['Content-Length'] = this.body.length)
-            : (this.headers = { 'Content-Type': this.contentType, 'Content-Length': this.body.length });
-
-        // Handle parameters
-        options.parameters ? (this.parameters = options.parameters, this.qs = `?${querystring.stringify(options.parameters)}`)
-            : (this.parameters = null, this.qs = '');
-
-        // Handle basic authorization
-        if (options.auth) {
-            this.headers['Authorization'] = 'Basic ' + new Buffer(options.auth.username + ':' + options.auth.password).toString('base64');
+    /**
+     * @description Follows the redirect link provided
+     * @param {string} link
+     */
+    private followRedirect(link: string) {
+        if (Utility.isValidUrl(link)) {
+            const url = new URL(link);
+            this.hostname = url.hostname;
+            this.path = url.pathname;
+        } else {
+            // Assume the link is a path that is relative to the request
+            this.path.startsWith('/test/')
+                ? (this.path = `/test${link}`)
+                : this.path.startsWith('/integration/')
+                    ? (this.path = `/integration${link}`)
+                    : this.path.startsWith('/production/')
+                        ? (this.path = `/production${link}`)
+                        : (this.path = link);
         }
 
-        // If there is a key, include it in the request
-        if (options.key) {
-            this.key = options.key;
+        promiseResolve(this.execute());
+    }
+
+    /**
+     * @description Logs debug information to the console
+     * @param {Response} response
+     */
+    private logDebugInfo(response: Response) {
+        if (this.debug) {
+            this.debugInfo = {
+                request: this.body,
+                response,
+            };
+            console.log(this.debugInfo);
+        }
+    }
+
+    /**
+     * @description Checks if it should reject the request based on the status code and rejectNon2xx flag
+     * @param {number} statusCode
+     * @param {string} statusMessage
+     */
+    private evaluateStatusCode(response: Response, statusMessage: string) {
+        const error: ErrorResponse = {
+            statusCode: response.statusCode,
+            message: statusMessage,
+            body: response.body,
+        };
+
+        if (this.rejectNon2xx && response.statusCode.toString().charAt(0) !== '2') {
+            return promiseReject(JSON.stringify(error, null, 2));
+        }
+    }
+
+    /**
+     * @description Checks response and retry logic to determine if the request should be retried
+     * @param {Response} response
+     * @returns Promise
+     */
+    private evaluateRetries(response: Response) {
+        return new Promise(async (resolve, reject) => {
+            for (const [index, condition] of this.retryConditions.entries()) {
+                if (eval(condition)) {
+                    await Utility.sleep(1000);
+                    clearTimeout(timeout);
+                    console.error('\x1b[31m%s\x1b[0m', `Got ${condition}! Retrying request...`);
+                    this.retryConditions.splice(index, 1);
+                    return this.retryRequest();
+                }
+                return resolve();
+            }
+            return resolve();
+        });
+    }
+
+    /**
+     * @description Executes HTTP request based on constructed HttpOptions
+     * @returns {Response} Promise
+     */
+    execute(): Promise<Response> {
+        const options = this.buildOptions();
+        const response: Response = { statusCode: null, body: '', headers: '' };
+        const start = new Date().getTime();
+
+        return new Promise((resolve, reject) => {
+            promiseResolve = resolve;
+            promiseReject = reject;
+
+            timeout = setTimeout(() => {
+                const err = new Error(`Timed out waiting for response after ${this.timeout / 1000} seconds`);
+                return reject(err);
+            }, this.timeout);
+
+            const req = https.request(options, async (res: any) => {
+                response.statusCode = res.statusCode;
+                response.headers = res.headers;
+                const statusMessage = res.statusMessage;
+
+                if (response.statusCode === 302 && res.headers.location) {
+                    clearTimeout(timeout);
+                    return this.followRedirect(res.headers.location);
+                }
+
+                res.on('data', (body: any) => {
+                    clearTimeout(timeout);
+                    response.body += body;
+                });
+
+                res.on('end', async () => {
+                    response.body = this.parse(options.headers, response.body);
+                    try {
+                        this.logDebugInfo(res);
+                        await this.log(response, options, start);
+                        await this.evaluateRetries(response);
+                        this.evaluateStatusCode(response, statusMessage);
+                        this.returnResponse(response);
+                    } catch (error) {
+                        return reject(error);
+                    }
+                });
+            });
+
+            // If there is formData then stream it to request
+            if (this.formData) {
+                this.formData.pipe(req);
+            } else {
+                req.write(this.body);
+            }
+
+            req.on('error', (err: any) => {
+                this.log(response, options, start);
+                return reject(err);
+            });
+
+            // Don't kill the stream for form data
+            if (!this.formData) {
+                req.end();
+            }
+        });
+    }
+
+    /**
+     * @description Logs to MySQL
+     * @param {Response} response
+     * @param {HttpOptions} options
+     */
+    private async log(response: Response, options: HttpOptions, start: number) {
+        const end = new Date().getTime();
+        options.duration = end - start;
+        if (!(process.env.mock || process.env.noLog)) {
+            try {
+                this.setStack();
+                options.body = this.body;
+                // await MySQL.insertRequestLog(response, options);
+            } catch (error) {
+                throw new Error(error);
+            }
+        }
+    }
+
+    /**
+     * @description Parses string into object based on Accept headers sent in request
+     * @param {Object} headers
+     * @param {Object} responseBody
+     * @returns {Object}
+     */
+    private parse(headers: object, responseBody: string) {
+        let parsedBody = '';
+
+        if (responseBody.length > 0) {
+            if (headers['Accept'] === 'application/json' || !headers['Accept']) {
+                try {
+                    parsedBody = JSON.parse(responseBody);
+                } catch (error) {
+                    if (error.message === 'Unexpected token < in JSON at position 0') {
+                        parsedBody = responseBody;
+                    }
+                }
+            } else if (headers['Accept'] === 'application/xml' || headers['Accept'] === 'text/xml') {
+                this.xmlToJSON(responseBody, res => {
+                    parsedBody = res;
+                });
+            } else {
+                parsedBody = responseBody;
+            }
         }
 
-        // If there is a cert, include it in the request
-        if (options.cert) {
-            this.cert = options.cert;
+        return parsedBody;
+    }
+
+    /**
+     * @description Retries a request
+     * @param {number} statusCode
+     */
+    private retryRequest() {
+        promiseResolve(this.execute());
+    }
+
+    /**
+     * @description Determines what data to return as the response based on resolveWithBodyOnly flag
+     * @param  {Response} response
+     */
+    private returnResponse(response: Response) {
+        this.resolveWithBodyOnly ? promiseResolve(response.body) : promiseResolve(response);
+    }
+
+    /**
+     * @description Sets values from the stack
+     */
+    private setStack() {
+        let previousLine: string;
+        for (const line of this.stack) {
+            const statement = Utility.extractString(line, 'UserContext.', ' ');
+
+            if (statement) {
+                const lineNumber = Utility.extractString(line, 'tests/', ')');
+                process.env.LINE = `${statement} - ${lineNumber}`;
+
+                if (previousLine) {
+                    process.env.FUNCTION = Utility.extractString(previousLine, 'at ', ' ');
+                }
+            }
+
+            previousLine = line;
         }
-
-        // If there is a passphrase, include it in the request
-        if (options.passphrase) {
-            this.passphrase = options.passphrase;
-        }
-
-        // Handle resolveWithBodyOnly option
-        (options.resolveWithBodyOnly === undefined || !options.resolveWithBodyOnly) ? this.resolveWithBodyOnly = false : this.resolveWithBodyOnly = true;
-
-        // Handle rejectNon2xx option
-        (options.rejectNon2xx === true) ? this.rejectNon2xx = true : (options.rejectNon2xx === false) ? this.rejectNon2xx = false : this.rejectNon2xx = true;
-
-        // Handle debug option
-        options.debug ? this.debug = options.debug : this.debug = false;
-
-        // Handle timeout option
-        options.timeout ? this.timeout = options.timeout : this.timeout = 10000;
-
     }
 
     /**
@@ -117,15 +272,14 @@ export class Request {
      * @param {callback} done
      * @returns JSON object
      */
-    xmlToJSON(body: object, done) {
-
+    private xmlToJSON(body: string, done: Function) {
         const { parseString } = require('xml2js');
 
         parseString(body, (err, result) => {
-            if (err) { console.error(err); }
+            if (err) {
+                console.error(err);
+            }
             done(result);
         });
-
     }
-
 }
